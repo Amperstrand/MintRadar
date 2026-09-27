@@ -18,7 +18,7 @@ import { computeReliabilityMovers, type MintScoreSnapshot } from './reliabilityM
 import { globalMeanRating, weightedRating } from './weightedRating.js'
 import { hasRecentReviewSurge } from './reviewSurge.js'
 import { isTestMint } from './testMints.js'
-import { isAllowlistMode, isAllowedUrl } from './allowlist.js'
+import { isFilterMode, matchesMintUrl } from './mintFilter.js'
 
 // Safety net against a nostr-tools bug: AbstractRelay.connect()'s
 // connection-timeout path calls `this.ws.close()` on a socket that hasn't
@@ -458,7 +458,7 @@ app.get('/api/mint/probe', (req: Request, res: Response): void => {
     return
   }
 
-  if (!isAllowedUrl(typeof url === 'string' ? url : '')) {
+  if (!matchesMintUrl(typeof url === 'string' ? url : '')) {
     res.status(403).json({ error: 'This deployment monitors a fixed mint allowlist.' })
     return
   }
@@ -1330,7 +1330,7 @@ app.post('/api/mint/submit', (req: Request, res: Response): void => {
     return
   }
 
-  if (!isAllowedUrl(url)) {
+  if (!matchesMintUrl(url)) {
     res.status(403).json({ error: 'This deployment monitors a fixed mint allowlist.' })
     return
   }
@@ -1404,7 +1404,7 @@ app.post('/api/mint/submit', (req: Request, res: Response): void => {
 const MAX_DISCOVER_BATCH = 100
 
 app.post('/api/mints/discover', async (req: Request, res: Response): Promise<void> => {
-  if (isAllowlistMode()) {
+  if (isFilterMode()) {
     res.status(403).json({ error: 'This deployment monitors a fixed mint allowlist.' })
     return
   }
