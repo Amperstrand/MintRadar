@@ -1,0 +1,44 @@
+# Self-host allowlist deployment (local patch, not upstream).
+# All binds are loopback-only; public exposure is the zoo Cloudflare tunnel.
+services:
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../../backend/.env
+    networks:
+      - mintradar_net
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mintradar
+      POSTGRES_USER: mintradar
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - mintradar_pgdata:/var/lib/postgresql/data
+    networks:
+      - mintradar_net
+
+  web:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ../../dist:/usr/share/nginx/html:ro
+      - ./nginx-selfhost.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "127.0.0.1:3012:80"
+    depends_on:
+      - backend
+    networks:
+      - mintradar_net
+
+networks:
+  mintradar_net:
+    driver: bridge
+
+volumes:
+  mintradar_pgdata:
